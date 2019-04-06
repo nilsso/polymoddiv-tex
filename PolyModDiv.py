@@ -1,19 +1,8 @@
-# Firstly recall polynomial long division as:
-#   a(x) = q(x)b(x) + r(x)
-# Where of dividing a(x) by b(x) we get
-#   q(x): The quotient
-#   r(x): The remainder
-# By using n as a modular base, coefficients in the polynomials now may
-# be "reduced" into equivalent mod n minimal values.
-#
-# For example,
-# x^3 + 4x^2 + 3x + 2 === x^2 + x^2 + 2 mod 3
-
-
 from itertools import dropwhile
 from copy import copy
 
-
+# PolyModDiv class
+#
 # Instances properties:
 #   ax: Dividend coefficients
 #   bx: Divisor coefficients
@@ -51,14 +40,14 @@ class PolyModDiv:
         self.original_ax = PolyModDiv.prune(ax)[0]
         self.original_bx = PolyModDiv.prune(bx)[0]
         self.ax = PolyModDiv.reduce(self.original_ax, n)
-        self.bx = PolyModDiv.reduce(self.original_bx, n)
+        self.bx = PolyModDiv.monic(self.original_bx, n)
         self.n = n
         self.divide()
 
     def divide(self):
         n = self.n
         ax = copy(self.ax)
-        bx = PolyModDiv.monic(self.bx, n)
+        bx = self.bx
         qx = [] # Quotient coefficients
         ds = [] # Division steps
 
@@ -74,6 +63,7 @@ class PolyModDiv:
             # each step until finished).
             qx += [q] + [0]*(z-1)
             ds += [([q*b for b in bx]+[0]*p, list(ax))]
+        ds = ds if ds else [0]
 
         self.division_steps = ds
         self.qx = qx
@@ -82,24 +72,18 @@ class PolyModDiv:
     def toTex(self):
         def coef(c, p):
             return str(c) if p == 0 or c != 1 else ''
-
         def power(i, p):
             return ('x'+('^'+str(p) if p != 1 else '')) if p != 0 else ''
-
         def term(c, i, n):
+            if not c:
+                return ' '
             p = n-i-1
             return coef(c, p)+power(i, p)
-
-        def intersperse(iterable, delim):
-            itr = iter(iterable)
-            yield next(itr)
-            for i in itr:
-                yield delim
-                yield i
-
         def convert(coefs):
+            if all(x == 0 for x in coefs):
+                return ['0']
             # First pass: construct term strings
-            s = [(term(a, i, len(coefs)) if a else ' ') for i, a in enumerate(coefs)]
+            s = [term(a, i, len(coefs)) for i, a in enumerate(coefs)]
             # Second pass: insert operators (pluck negatives)
             i = 1
             while i < len(s):
@@ -112,38 +96,33 @@ class PolyModDiv:
                 else:
                     s.insert(i, ' ')
                 i += 2
-            # return list(intersperse(s, '&'))
             return s
 
-        cline = r'\cline{%d-%d}'
-
         ax, bx, qx, ds = self.ax, self.bx, self.qx, self.division_steps
-        order = len(ax)
+        order = len(ax)-1
+        c_ax, c_bx, c_qx = convert(ax), convert(bx), convert(qx)
+        c_bx = c_bx[:-1] + [r'\multicolumn{1}{R|}{%s}' % c_bx[-1]]
+        lcols, rcols = len(c_bx), len(c_ax)
+        ncols = lcols + rcols
+        lpad = '&'*lcols
 
-        lwidth, rwidth = len(bx)*2, len(ax)*2
-        pad = '&'*(lwidth-1)
-        ncols = lwidth+rwidth
-        cbx = convert(bx)
-        cax = convert(ax)
-        l = len(pad) + 1
-        r = l + len(cax) - 1
-        sqx = pad + '&'.join(convert(qx)) + r' \\' + (cline%(l, r))
-        sbxax = '&'.join(cbx[:-1]) + '&' + (r'\multicolumn{1}{R|}{%s}'%cbx[-1]) + ' & ' + '&'.join(cax) + r' \\'
-        print(sqx)
-        print(sbxax)
+        def cols(sx):
+            return lcols+1+(order-len(sx)+1)*2
+        def pad(sx):
+            return '&'*(cols(sx)-1)
+        def cline(sx):
+            return r'\cline{%d-%d}' % (cols(sx), ncols)
+
+        out = lpad + '&'.join(c_qx) + r'\\' + cline(ax) + '\n'
+        out += '&'.join(c_bx) + '&' + '&'.join(c_ax) + r'\\' + '\n'
         for qbx, diff in ds:
-            qbx_pad = (order-len(qbx))*2
-            diff_pad = (order-len(diff))*2
-            cqbx = convert(qbx)
-            l = len(pad) + qbx_pad + 1
-            r = l + len([c for c in cqbx if c != ' ']) - 1
-            sqbx = pad + ' ' + '&'*qbx_pad + ' ' + '(-)' + '&'.join(cqbx) + r' \\' + (cline%(l, r))
-            sdiff = pad + ' ' + '&'*diff_pad + ' ' + '&'.join(convert(diff)) + r' \\'
-            print(sqbx)
-            print(sdiff)
-            # s = list(intersperse(_s, ' ')) + convert(qbx)
-            # s = '& '*lpad + ' & '.join(str(x) for x in qbx)
-            # print(s)
+            c_qbx = convert(qbx)
+            c_qbx = ['(-)' + c_qbx[0]] + c_qbx[1:]
+            out += pad(qbx) + '&'.join(c_qbx) + r'\\' + cline(qbx) + '\n'
+            out += pad(diff) + '&'.join(convert(diff)) + r'\\' + '\n'
+        pre = r'\begin{tabular}{*{%d}{R}}' % ncols + '\n'
+        post = r'\end{tabular}' + '\n'
+        return pre + out + post
 
     def __str__(self):
         _division_steps = '\n'.join('    '+str(l) for l in self.division_steps)
@@ -162,6 +141,16 @@ division_steps=[{_division_steps}
 
 
 if __name__ == '__main__':
+    pre = '''\
+\\documentclass{article}
+\\usepackage{amsmath}
+\\usepackage{array}
+\\newcolumntype{R}{>{$}r<{$}} 
+\\setlength{\\tabcolsep}{2pt}
+\\renewcommand{\\arraystretch}{1.5} 
+\\begin{document}'''
+    post = '''\
+\\end{document}'''
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -172,8 +161,18 @@ if __name__ == '__main__':
             help='coefficients of b(x)')
     parser.add_argument('-n', action='store', type=int,
             help='modular base')
+    parser.add_argument('-t', '--latex', action='store_true',
+            help='output formatted LaTeX')
+    parser.add_argument('-T', '--standalone', action='store_true',
+            help='output formatted LaTeX (standalone document)')
     args = parser.parse_args()
 
     _ax, _bx, _n = args.a_coeffs, args.b_coeffs, args.n
     p = PolyModDiv(_ax, _bx, _n)
-    print(p)
+    if args.latex:
+        print(p.toTex())
+    elif args.standalone:
+        print(pre+p.toTex()+post)
+    else:
+        print(p)
+
