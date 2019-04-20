@@ -142,7 +142,7 @@ division_steps=[{_division_steps}
 
 if __name__ == '__main__':
     pre = '''\
-\\documentclass{article}
+\\documentclass{standalone}
 \\usepackage{amsmath}
 \\usepackage{array}
 \\newcolumntype{R}{>{$}r<{$}} 
