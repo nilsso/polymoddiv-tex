@@ -5,7 +5,7 @@ LaTeX, which is generally a complete chore.
 
 ## Usage
 
-As an example, dividing ![a](media/a.png) by ![b](media/b.png) in ![n](media/n.png):
+As an example, dividing ![a](media/a.png) by ![b](media/b.png) in ![n](media/n.png =x20):
 
 - As data:
 
