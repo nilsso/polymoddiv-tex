@@ -1,4 +1,13 @@
-As data:
+# Polynomial Modular Longdivision
+
+Just a Python3 script to layout polynomial modular longdivision in
+LaTeX, which is generally a complete chore.
+
+## Usage
+
+As an example, dividing ![a](media/a.png) by ![b](media/b.png) in ![n](media/n.png):
+
+- As data:
 
 ```bash
 python3 PolyModDiv.py -a 5 2 0 7 0 -b 5 0 4 -n 7
@@ -17,7 +26,7 @@ division_steps=[
 ]
 ```
 
-Or as a LaTeX table:
+- Or as a LaTeX table:
 
 ```bash
 python3 PolyModDiv.py -a 5 2 0 7 0 -b 5 0 4 -n 7 -t
@@ -35,7 +44,7 @@ x^2& & &+&\multicolumn{1}{R|}{5}&5x^4&+&2x^3& & & & & & \\
 \end{tabular}
 ```
 
-Or as a standalone LaTeX document:
+- Or as a standalone LaTeX document:
 
 ```bash
 python3 PolyModDiv.py -a 5 2 0 7 0 -b 5 0 4 -n 7 -T > sample.tex
@@ -44,4 +53,4 @@ lualatex sample.tex
 
 Which produces:
 
-![sample output](sample.png)
+![sample output](media/sample.png)
